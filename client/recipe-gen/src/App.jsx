@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:3000"; // ✅ Fixed: env var
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:3000"; // Fixed: env var
 
 // ─── Reusable select field ─────────────────────────────────────────────────────
 
@@ -167,10 +167,10 @@ const RecipeLine = ({ line, index }) => {
 // ─── App ───────────────────────────────────────────────────────────────────────
 
 function App() {
-  const [recipeRequestId, setRecipeRequestId] = useState(null); // ✅ Fixed: renamed from recipeData
+  const [recipeRequestId, setRecipeRequestId] = useState(null); // Fixed: renamed from recipeData
   const [recipeText, setRecipeText] = useState("");
-  const [isLoading, setIsLoading] = useState(false);           // ✅ Fixed: loading state
-  const [error, setError] = useState(null);                    // ✅ Fixed: error state
+  const [isLoading, setIsLoading] = useState(false);           // Fixed: loading state
+  const [error, setError] = useState(null);                    // Fixed: error state
   const eventSourceRef = useRef(null);
 
   const closeEventStream = () => {
@@ -181,7 +181,7 @@ function App() {
   };
 
   const handleRecipeSubmit = async (formData) => {
-    closeEventStream(); // ✅ Fixed: always close previous stream before starting new one
+    closeEventStream(); // Fixed: always close previous stream before starting new one
     setRecipeText("");
     setError(null);
     setIsLoading(true);
@@ -207,7 +207,7 @@ function App() {
     }
   };
 
-  // ✅ Fixed: useCallback removed — logic lives directly in useEffect
+  // Fixed: useCallback removed — logic lives directly in useEffect
   useEffect(() => {
     if (!recipeRequestId) return;
 
