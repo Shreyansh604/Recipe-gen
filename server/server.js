@@ -71,7 +71,7 @@ app.get("/recipeStream/:id", async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "mistralai/mixtral-8x7b-instruct",
+        model: "google/gemma-4-26b-a4b-it:free",
         messages: [
           { role: "system", content: "You are a helpful recipe generator." },
           { role: "user", content: prompt.join("\n") }
