@@ -125,13 +125,6 @@ const Navbar = () => (
 const RecipeLine = ({ line, index }) => {
   if (!line.trim()) return <div key={index} className="h-2" />;
 
-  const lower = line.toLowerCase();
-  const isHeader =
-    lower.includes("ingredients") ||
-    lower.includes("instructions") ||
-    lower.includes("steps");
-
-  // Bold markdown: **text**
   const renderInline = (text) => {
     const parts = text.split(/\*\*(.*?)\*\*/g);
     return parts.map((part, i) =>
@@ -139,20 +132,54 @@ const RecipeLine = ({ line, index }) => {
     );
   };
 
-  if (isHeader) {
+  // ### Headings
+  if (line.startsWith("### ")) {
     return (
       <div key={index}>
         <hr className="my-3 border-t-2 border-gray-300" />
-        <p className="font-bold text-gray-900">{renderInline(line)}</p>
+        <p className="font-bold text-gray-900 text-lg">{renderInline(line.replace(/^###\s*/, ""))}</p>
       </div>
     );
   }
 
-  // Bullet / list items
-  if (line.startsWith("- ") || line.match(/^\d+\./)) {
+  // ## Headings
+  if (line.startsWith("## ")) {
+    return (
+      <div key={index}>
+        <hr className="my-3 border-t-2 border-gray-300" />
+        <p className="font-bold text-gray-900 text-xl">{renderInline(line.replace(/^##\s*/, ""))}</p>
+      </div>
+    );
+  }
+
+  // --- divider
+  if (line.trim() === "---") {
+    return <hr key={index} className="my-3 border-t border-gray-200" />;
+  }
+
+  // Numbered list: 1. or Step 1:
+  if (line.match(/^\d+\./) || line.match(/^Step\s+\d+/i)) {
+    return (
+      <p key={index} className="pl-4 text-gray-700 font-medium whitespace-pre-wrap">
+        {renderInline(line)}
+      </p>
+    );
+  }
+
+  // Bullet: - or *
+  if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith(". ")) {
     return (
       <p key={index} className="pl-4 before:content-['•'] before:mr-2 before:text-blue-400 whitespace-pre-wrap text-gray-700">
-        {renderInline(line.replace(/^[-\d.]\s*/, ""))}
+        {renderInline(line.replace(/^[-*.]\s*/, ""))}
+      </p>
+    );
+  }
+
+  // *italic* single star lines (recipe name etc)
+  if (line.startsWith("*") && line.endsWith("*")) {
+    return (
+      <p key={index} className="italic text-gray-600 whitespace-pre-wrap">
+        {line.replace(/^\*|\*$/g, "")}
       </p>
     );
   }
