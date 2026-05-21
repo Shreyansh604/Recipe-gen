@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-// import { OpenAI } from "openai";
 import { v4 as uuidv4 } from "uuid";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
@@ -12,12 +11,36 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json()); // Par
-// 
-// /se JSON bodies
+app.use(express.json());
 
 // In-memory store for recipe requests
 const requests = new Map();
+
+// Helper function to call OpenRouter with retries
+const fetchWithRetry = async (body, retries = 3, delay = 1000) => {
+  for (let i = 0; i < retries; i++) {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:3000",
+        "X-Title": "Recipe Gen",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json();
+
+    if (data?.choices?.[0]?.message?.content) {
+      return data; // ✅ valid response, return it
+    }
+
+    console.warn(`Attempt ${i + 1} failed, retrying in ${delay}ms...`);
+    await new Promise((res) => setTimeout(res, delay));
+  }
+  throw new Error("Failed to get a valid response after multiple attempts.");
+};
 
 // POST route to receive recipe input, create ID and respond with it
 app.post("/recipeRequest", (req, res) => {
@@ -50,42 +73,22 @@ app.get("/recipeStream/:id", async (req, res) => {
   prompt.push(`[Cuisine Preference: ${recipeData.cuisine}]`);
   prompt.push(`[Cooking Time: ${recipeData.cookingTime}]`);
   prompt.push(`[Complexity: ${recipeData.complexity}]`);
-  prompt.push(
-    "Please provide a detailed recipe, including steps for preparation and cooking. Only use the ingredients provided."
-  );
-  prompt.push(
-    "The recipe should highlight the fresh and vibrant flavors of the ingredients."
-  );
-  prompt.push(
-  "Use clear and straightforward language."
-  );
-  prompt.push(
-    "Also give the recipe a suitable name in its local language based on cuisine preference."
-  );
+  prompt.push("Please provide a detailed recipe, including steps for preparation and cooking. Only use the ingredients provided.");
+  prompt.push("The recipe should highlight the fresh and vibrant flavors of the ingredients.");
+  prompt.push("Use clear and straightforward language.");
+  prompt.push("Also give the recipe a suitable name in its local language based on cuisine preference.");
 
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemma-4-26b-a4b-it:free",
-        messages: [
-          { role: "system", content: "You are a helpful recipe generator." },
-          { role: "user", content: prompt.join("\n") }
-        ],
-        stream: false // Can be true if you later want to add streaming support
-      }),
+    const data = await fetchWithRetry({
+      model: "google/gemma-4-26b-a4b-it:free",
+      messages: [
+        { role: "system", content: "You are a helpful recipe generator." },
+        { role: "user", content: prompt.join("\n") }
+      ],
+      stream: false
     });
 
-    const data = await response.json();
     console.log("OpenRouter response:", JSON.stringify(data, null, 2));
-    
-    if (!data || !data.choices || !data.choices[0]?.message?.content) {
-      throw new Error("Invalid response from OpenRouter");
-    }
 
     const fullText = data.choices[0].message.content;
     res.write(`data: ${JSON.stringify({ action: "chunk", chunk: fullText })}\n\n`);
